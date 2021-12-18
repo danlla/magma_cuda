@@ -38,8 +38,8 @@ __global__ void encrypt_kernel(magma::block* data, size_t n, magma_keys k) {
 
 	for (int k = tid; k < n; k += tcnt)
 	{
-		if (threadIdx.x == 0 && blockIdx.x == 0)
-			printf("%llu", data[k].ull);
+		/*if (threadIdx.x == 0 && blockIdx.x == 0)
+			printf("%llu", data[k].ull);*/
 		auto src = data[k];
 		for (int i = 0; i < 31; ++i)
 		{
@@ -90,7 +90,7 @@ void magma_gpu::encrypt(block* buf, size_t size) const
 	check(cudaMemcpy(data, buf, size * sizeof(block), cudaMemcpyHostToDevice));
 	magma_keys k;
 	std::copy_n(this->keys, 8, k.keys);
-	encrypt_kernel <<<1, 1 >>> (data, size, k); //Instead of <<<10, 1024>> here must be something like <<<this->thread_blocks, this->block.size>>>
+	encrypt_kernel <<<64, 128 >>> (data, size, k); //Instead of <<<10, 1024>> here must be something like <<<this->thread_blocks, this->block.size>>>
 	check(cudaDeviceSynchronize());
 	check(cudaMemcpy(buf, data, size * sizeof(block), cudaMemcpyDeviceToHost));
 	check(cudaFree(data));
