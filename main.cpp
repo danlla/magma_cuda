@@ -7,9 +7,9 @@
 
 void bench(const magma& m, size_t n, const std::unique_ptr<magma::block[]>& message);
 
-void encrypt_file(const magma& m, const char* input_file, const char* output_file);
+void encrypt_file(const magma& m, const char* input_file, const char* output_file, size_t buf_size);
 
-void decrypt_file(const magma& m, const char* input_file, const char* output_file);
+void decrypt_file(const magma& m, const char* input_file, const char* output_file, size_t buf_size);
 
 int main()
 {
@@ -33,8 +33,8 @@ int main()
     magma_gpu m2(keys);
     //bench(m2, n, message);
 
-    encrypt_file(m2, "test.txt","encrypted.txt");
-    decrypt_file(m2, "encrypted.txt", "decrypted.txt");
+    encrypt_file(m2, "test.txt","encrypted.txt",500);
+    decrypt_file(m2, "encrypted.txt", "decrypted.txt",500);
 }
 
 int addition(magma::block* buf, size_t byte)
@@ -64,44 +64,46 @@ int cut_addition(magma::block* buf, size_t n)
     return dif;
 }
 
-void encrypt_file(const magma& m, const char* input_file, const char* output_file)
+void encrypt_file(const magma& m, const char* input_file, const char* output_file, size_t buf_size)
 {
     std::ifstream ifile(input_file, std::ios::binary);
     std::ofstream ofile(output_file, std::ios::binary);
-    magma::block* buf = new magma::block[501];
+    magma::block* buf = new magma::block[buf_size+1];
+    size_t count = 0;
     while (true)
     {
-        ifile.read((char*)buf, 500 * sizeof(magma::block));
-        auto count = ifile.gcount();
-        if (!count)
+        ifile.read((char*)buf, buf_size * sizeof(magma::block));
+        count = ifile.gcount();
+        if (!ifile)
             break;
         std::cout <<"read " << ifile.gcount() << std::endl;
-        int add = 0;
-        if(count!=4000)
-            add = addition(buf, count);
-        m.encrypt(buf, count / 8 + add);
-        ofile.write((char*)buf, (count / 8 + add) * sizeof(magma::block));
+        m.encrypt(buf, count / 8);
+        ofile.write((char*)buf, (count / 8) * sizeof(magma::block));
     }
+    int add = addition(buf, count);
+    m.encrypt(buf, count / 8 + add);
+    ofile.write((char*)buf, (count / 8 + add) * sizeof(magma::block));
 }
 
-void decrypt_file(const magma& m, const char* input_file, const char* output_file)
+void decrypt_file(const magma& m, const char* input_file, const char* output_file, size_t buf_size)
 {
     std::ifstream ifile(input_file, std::ios::binary);
     std::ofstream ofile(output_file, std::ios::binary);
-    magma::block* buf = new magma::block[501];
+    magma::block* buf = new magma::block[buf_size+1];
+    size_t count = 0;
     while(true)
     {
-        ifile.read((char*)buf, 500 * sizeof(magma::block));
-        auto count = ifile.gcount();
-        if (!count)
+        ifile.read((char*)buf, buf_size * sizeof(magma::block));
+        count = ifile.gcount();
+        if (!ifile)
             break;
         std::cout <<"read " << count << std::endl;
         m.decrypt(buf, count / 8);
-        int extra = 0;
-        if(count!=4000)
-            extra = cut_addition(buf, count / 8);
-        ofile.write((char*)buf, (count / 8) * sizeof(magma::block) - extra);
-    } 
+        ofile.write((char*)buf, (count / 8) * sizeof(magma::block));
+    }
+    int extra = 0;
+    extra = cut_addition(buf, count / 8);
+    ofile.write((char*)buf, (count / 8) * sizeof(magma::block) - extra);
 }
 
 /*one task - one function*/
