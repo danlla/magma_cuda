@@ -47,18 +47,29 @@ int addition(magma::block* buf, size_t byte)
     }
     else
     {
-        int dif = byte % 8;
-        for (int i = dif; i < 8; ++i)
+        int dif = 8-byte % 8;
+        for (int i = 8-dif; i < 8; ++i)
             buf[byte / 8].c[i] = dif;
     }
     return 1;
 }
 
-int cut_addition(magma::block* buf, size_t n)
+//int cut_addition(magma::block* buf, size_t n)
+//{
+//    if (buf[n-1].c[7] == 8)
+//        return 8;
+//    int dif = 8-buf[n-1].c[7];
+//    /*for (int i = 7; i >= dif; --i)
+//        buf[n-1].c[i] = 0;*/
+//    return dif;
+//}
+
+
+int cut_addition(const magma::block& b)
 {
-    if (buf[n-1].c[7] == 8)
+    if (b.c[7] == 8)
         return 8;
-    int dif = 8-buf[n-1].c[7];
+    int dif = 8-b.c[7];
     /*for (int i = 7; i >= dif; --i)
         buf[n-1].c[i] = 0;*/
     return dif;
@@ -74,15 +85,16 @@ void encrypt_file(const magma& m, const char* input_file, const char* output_fil
     {
         ifile.read((char*)buf, buf_size * sizeof(magma::block));
         count = ifile.gcount();
+        std::cout << "read " << count << std::endl;
         if (!ifile)
             break;
-        std::cout <<"read " << ifile.gcount() << std::endl;
         m.encrypt(buf, count / 8);
         ofile.write((char*)buf, (count / 8) * sizeof(magma::block));
     }
     int add = addition(buf, count);
     m.encrypt(buf, count / 8 + add);
     ofile.write((char*)buf, (count / 8 + add) * sizeof(magma::block));
+    delete[] buf;
 }
 
 void decrypt_file(const magma& m, const char* input_file, const char* output_file, size_t buf_size)
@@ -95,15 +107,16 @@ void decrypt_file(const magma& m, const char* input_file, const char* output_fil
     {
         ifile.read((char*)buf, buf_size * sizeof(magma::block));
         count = ifile.gcount();
+        std::cout << "read " << count << std::endl;
         if (!ifile)
             break;
-        std::cout <<"read " << count << std::endl;
         m.decrypt(buf, count / 8);
         ofile.write((char*)buf, (count / 8) * sizeof(magma::block));
     }
     int extra = 0;
-    extra = cut_addition(buf, count / 8);
+    extra = cut_addition(buf[count / 8 - 1]);
     ofile.write((char*)buf, (count / 8) * sizeof(magma::block) - extra);
+    delete[] buf;
 }
 
 /*one task - one function*/
