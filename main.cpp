@@ -4,6 +4,7 @@
 #include "magma.cuh"
 #include "magma_gpu.cuh"
 #include <fstream>
+#include "argparse.hpp"
 
 void bench(const magma& m, size_t n, const std::unique_ptr<magma::block[]>& message);
 
@@ -11,7 +12,7 @@ void encrypt_file(const magma& m, const char* input_file, const char* output_fil
 
 void decrypt_file(const magma& m, const char* input_file, const char* output_file, size_t buf_size);
 
-int main()
+int main(int argc, char* argv[])
 {
     std::array<unsigned int, 8> keys = { 0xccddeeff, 0x8899aabb, 0x44556677, 0x00112233, 0xf3f2f1f0, 0xf7f6f5f4, 0xfbfaf9f8, 0xfffefdfc };
     magma m(keys);
@@ -33,8 +34,75 @@ int main()
     magma_gpu m2(keys);
     //bench(m2, n, message);
 
-    encrypt_file(m, "test.txt","encrypted.txt",500);
-    decrypt_file(m, "encrypted.txt", "decrypted.txt",500);
+    //encrypt_file(m, "test.txt","encrypted.txt",500);
+    //decrypt_file(m, "encrypted.txt", "decrypted.txt",500);
+
+    argparse::ArgumentParser program("magma", "1.0.0");
+    program.add_argument("-e", "--encrypt")
+        .help("encrypt data")
+        .default_value(false)
+        .implicit_value(true);
+    program.add_argument("-d", "--decrypt")
+        .help("decrypt data")
+        .default_value(false)
+        .implicit_value(true);
+    program.add_argument("-b", "--bench")
+        .help("bench")
+        .default_value(false)
+        .implicit_value(true);
+    program.add_argument("-r", "--random")
+        .help("random key")
+        .default_value(false)
+        .implicit_value(true);
+    program.add_argument("-p", "--password")
+        .help("password key");
+    program.add_argument("-k", "--key")
+        .help("file with key");
+    program.add_argument("input")
+        .help("input file");
+    program.add_argument("output")
+        .help("output file");
+    try {
+        program.parse_args(argc, argv);
+    }
+    catch (const std::runtime_error& err) {
+        std::cerr << err.what() << std::endl;
+        std::cerr << program;
+        std::exit(1);
+    }
+    if (program["--encrypt"] == true) {
+        if (program["--decrypt"] == true)
+        {
+            std::cout << "Only encrypt or decrypt";
+            exit(EXIT_FAILURE);
+        }
+        std::cout << "encrypt" << std::endl;
+    }
+    if (program["--decrypt"] == true) {
+        std::cout << "decrypt" << std::endl;
+    }
+    if (program["--bench"] == true) {
+        std::cout << "bench" << std::endl;
+    }
+    if (program["--random"] == true) {
+        if (program.present("-p").has_value() || program.present("-k").has_value())
+        {
+            std::cout << "Only password or random";
+            exit(EXIT_FAILURE);
+        }
+        std::cout << "random" << std::endl;
+    }
+   /* auto pass = program.present("-p");
+    std::cout << pass.value() << std::endl;*/
+    auto key = program.present("-k");
+    std::cout << key.value() << std::endl;
+    auto inputf = program.get<std::string>("input");
+    std::cout << inputf << std::endl;
+    auto outputf = program.get<std::string>("output");
+    std::cout << outputf << std::endl;
+
+    //  ./magma -e -k key input output
+
 }
 
 int addition(magma::block* buf, size_t byte)
