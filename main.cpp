@@ -30,11 +30,11 @@ int main()
     }
     //bench(m, n, message);
 
-    //magma_gpu m2(keys);
+    magma_gpu m2(keys);
     //bench(m2, n, message);
 
-    encrypt_file(m, "test.txt","encrypted.txt");
-    decrypt_file(m, "encrypted.txt", "decrypted.txt");
+    encrypt_file(m2, "test.txt","encrypted.txt");
+    decrypt_file(m2, "encrypted.txt", "decrypted.txt");
 }
 
 int addition(magma::block* buf, size_t byte)
@@ -66,8 +66,8 @@ int cut_addition(magma::block* buf, size_t n)
 
 void encrypt_file(const magma& m, const char* input_file, const char* output_file)
 {
-    std::ifstream ifile(input_file);
-    std::ofstream ofile(output_file);
+    std::ifstream ifile(input_file, std::ios::binary);
+    std::ofstream ofile(output_file, std::ios::binary);
     magma::block* buf = new magma::block[501];
     while (true)
     {
@@ -86,8 +86,8 @@ void encrypt_file(const magma& m, const char* input_file, const char* output_fil
 
 void decrypt_file(const magma& m, const char* input_file, const char* output_file)
 {
-    std::ifstream ifile(input_file);
-    std::ofstream ofile(output_file);
+    std::ifstream ifile(input_file, std::ios::binary);
+    std::ofstream ofile(output_file, std::ios::binary);
     magma::block* buf = new magma::block[501];
     while(true)
     {
