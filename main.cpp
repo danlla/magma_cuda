@@ -33,8 +33,8 @@ int main()
     magma_gpu m2(keys);
     //bench(m2, n, message);
 
-    encrypt_file(m2, "test.txt","encrypted.txt",500);
-    decrypt_file(m2, "encrypted.txt", "decrypted.txt",500);
+    encrypt_file(m, "test.txt","encrypted.txt",500);
+    decrypt_file(m, "encrypted.txt", "decrypted.txt",500);
 }
 
 int addition(magma::block* buf, size_t byte)
@@ -54,25 +54,9 @@ int addition(magma::block* buf, size_t byte)
     return 1;
 }
 
-//int cut_addition(magma::block* buf, size_t n)
-//{
-//    if (buf[n-1].c[7] == 8)
-//        return 8;
-//    int dif = 8-buf[n-1].c[7];
-//    /*for (int i = 7; i >= dif; --i)
-//        buf[n-1].c[i] = 0;*/
-//    return dif;
-//}
-
-
 int cut_addition(const magma::block& b)
 {
-    if (b.c[7] == 8)
-        return 8;
-    int dif = 8-b.c[7];
-    /*for (int i = 7; i >= dif; --i)
-        buf[n-1].c[i] = 0;*/
-    return dif;
+    return b.c[7];
 }
 
 void encrypt_file(const magma& m, const char* input_file, const char* output_file, size_t buf_size)
@@ -114,6 +98,7 @@ void decrypt_file(const magma& m, const char* input_file, const char* output_fil
         ofile.write((char*)buf, (count / 8) * sizeof(magma::block));
     }
     int extra = 0;
+    m.decrypt(buf, count / 8);
     extra = cut_addition(buf[count / 8 - 1]);
     ofile.write((char*)buf, (count / 8) * sizeof(magma::block) - extra);
     delete[] buf;
