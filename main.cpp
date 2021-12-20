@@ -14,24 +14,24 @@ void decrypt_file(const magma& m, const char* input_file, const char* output_fil
 
 int main(int argc, char* argv[])
 {
-    std::array<unsigned int, 8> keys = { 0xccddeeff, 0x8899aabb, 0x44556677, 0x00112233, 0xf3f2f1f0, 0xf7f6f5f4, 0xfbfaf9f8, 0xfffefdfc };
-    magma m(keys);
+    //std::array<unsigned int, 8> keys = { 0xccddeeff, 0x8899aabb, 0x44556677, 0x00112233, 0xf3f2f1f0, 0xf7f6f5f4, 0xfbfaf9f8, 0xfffefdfc };
+    //magma m(keys);
     magma::block test;
     test.ull = 0x1032547698badcfe;
 
 
-    std::mt19937 engine;
-    engine.seed(1);
+   /* std::mt19937 engine;
+    engine.seed(1);*/
     size_t n = 128 * 1024 / sizeof(magma::block);//64*1024*1024;
     auto message = std::make_unique<magma::block[]>(n);
-    for (size_t i = 0; i < n; ++i)
+    /*for (size_t i = 0; i < n; ++i)
     {
         message[i].uint[0] = engine();
         message[i].uint[1] = engine();
-    }
+    }*/
     //bench(m, n, message);
 
-    magma_gpu m2(keys);
+    //magma_gpu m2(keys);
     //bench(m2, n, message);
 
     //encrypt_file(m, "test.txt","encrypted.txt",500);
@@ -51,17 +51,16 @@ int main(int argc, char* argv[])
         .default_value(false)
         .implicit_value(true);
     program.add_argument("-r", "--random")
-        .help("random key")
-        .default_value(false)
-        .implicit_value(true);
-    program.add_argument("-p", "--password")
-        .help("password key");
-    program.add_argument("key file")
-        .help("for encrypt with random/password write new key in file\n\t\tfor encrypt without random/password read a key from file\n\t\tfor decrypt read a key from the file");
+        .help("file for saving random key");
+   /* program.add_argument("-p", "--password")
+        .help("password key");*/
+    program.add_argument("-k", "--key")
+        .help("for encrypt read a key from file\n\t\tfor decrypt read a key from file");
     program.add_argument("input file")
         .help("input file");
     program.add_argument("output file")
         .help("output file");
+
     try {
         program.parse_args(argc, argv);
     }
@@ -70,38 +69,76 @@ int main(int argc, char* argv[])
         std::cerr << program;
         std::exit(1);
     }
+
+    std::array<unsigned int, 8> keys;
+    
+    if (program["--decrypt"] == false && program["--encrypt"] == false)
+    {
+        std::cout << "You need choose encrypt or decrypt";
+        exit(EXIT_FAILURE);
+    }
+    /*if (program.present("-p").has_value())
+    {
+        if (program.present("-r").has_value())
+        {
+            std::cout << "Only password or random";
+            exit(EXIT_FAILURE);
+        }
+        std::cout << program.present("-p").value() << std::endl;
+    }*/
+    else if (program.present("-r").has_value())
+    {
+        if (program["--decrypt"] == true)
+        {
+            std::cout << "you can't use random to decrypt";
+            exit(EXIT_FAILURE);
+        }
+        std::cout << "random" << std::endl;
+        std::mt19937 engine;
+        engine.seed(1);
+        for (int i = 0; i < 8; ++i)
+            keys[i] = engine();
+        std::ofstream ofile(program.present("-r").value(), std::ios::binary);
+        ofile.setf(std::ios_base::hex);
+        ofile.write((char*)keys.data(), 64);
+    }
+    else
+    {
+        if(!program.present("-k").has_value())
+        {
+            std::cout << "you need use random or key";
+            exit(EXIT_FAILURE);
+        }
+        std::ifstream ifile(program.present("-k").value(), std::ios::binary);
+        if (!ifile)
+        {
+            std::cout << "empty key file";
+            exit(EXIT_FAILURE);
+        }
+        ifile.read((char*)keys.data(),64);
+    }
+
     if (program["--encrypt"] == true) {
         if (program["--decrypt"] == true)
         {
             std::cout << "Only encrypt or decrypt";
             exit(EXIT_FAILURE);
         }
-        std::cout << "encrypt" << std::endl;
+        std::cout << "encrypt";
+        if (program["--bench"] == true)
+            std::cout << " with bench";
+        std::cout << " from " << program.get<std::string>("input file") << " to " << program.get<std::string>("output file") << std::endl;
+        magma m(keys);
+        encrypt_file(m, program.get<std::string>("input file").c_str(), program.get<std::string>("output file").c_str(), 500);
     }
     if (program["--decrypt"] == true) {
-        std::cout << "decrypt" << std::endl;
+        std::cout << "decrypt";
+        if (program["--bench"] == true)
+            std::cout << " with bench";
+        std::cout << " from " << program.get<std::string>("input file") << " to " << program.get<std::string>("output file") << std::endl;
+        magma m(keys);
+        decrypt_file(m, program.get<std::string>("input file").c_str(), program.get<std::string>("output file").c_str(), 500);
     }
-    if (program["--bench"] == true) {
-        std::cout << "bench" << std::endl;
-    }
-    if (program["--random"] == true) {
-        if (program.present("-p").has_value())
-        {
-            std::cout << "Only password or random";
-            exit(EXIT_FAILURE);
-        }
-        std::cout << "random" << std::endl;
-    }
-    /* auto pass = program.present("-p");
-     std::cout << pass.value() << std::endl;*/
-    auto key = program.get<std::string>("key file");;
-    std::cout << key << std::endl;
-    auto inputf = program.get<std::string>("input file");
-    std::cout << inputf << std::endl;
-    auto outputf = program.get<std::string>("output file");
-    std::cout << outputf << std::endl;
-
-    //  ./magma -e -k key input output
 
 }
 
@@ -109,7 +146,6 @@ int addition(magma::block* buf, size_t byte)
 {
     if (byte % 8 == 0)
     {
-        //buf[byte / 8].ull = 0x0808080808080808;
         for (int i = 0; i < 8; ++i)
             buf[byte / 8].c[i] = 8;
     }
@@ -137,7 +173,6 @@ void encrypt_file(const magma& m, const char* input_file, const char* output_fil
     {
         ifile.read((char*)buf, buf_size * sizeof(magma::block));
         count = ifile.gcount();
-        std::cout << "read " << count << std::endl;
         if (!ifile)
             break;
         m.encrypt(buf, count / 8);
@@ -159,7 +194,6 @@ void decrypt_file(const magma& m, const char* input_file, const char* output_fil
     {
         ifile.read((char*)buf, buf_size * sizeof(magma::block));
         count = ifile.gcount();
-        std::cout << "read " << count << std::endl;
         if (!ifile)
             break;
         m.decrypt(buf, count / 8);
