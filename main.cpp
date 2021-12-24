@@ -14,28 +14,33 @@ void decrypt_file(const magma& m, const char* input_file, const char* output_fil
 
 int main(int argc, char* argv[])
 {
-    //std::array<unsigned int, 8> keys = { 0xccddeeff, 0x8899aabb, 0x44556677, 0x00112233, 0xf3f2f1f0, 0xf7f6f5f4, 0xfbfaf9f8, 0xfffefdfc };
-    //magma m(keys);
-    magma::block test;
-    test.ull = 0x1032547698badcfe;
 
 
-   /* std::mt19937 engine;
-    engine.seed(1);*/
-    size_t n = 128 * 1024 / sizeof(magma::block);//64*1024*1024;
-    auto message = std::make_unique<magma::block[]>(n);
-    /*for (size_t i = 0; i < n; ++i)
-    {
-        message[i].uint[0] = engine();
-        message[i].uint[1] = engine();
-    }*/
-    //bench(m, n, message);
+    for (size_t i = 0; i < argc; ++i)
+        if (!(strcmp(argv[i],"-b") && strcmp(argv[i], "--bench")))
+        {
+            std::cout << "Testing: 128mb" << std::endl;
+            std::array<unsigned int, 8> keys = { 0xccddeeff, 0x8899aabb, 0x44556677, 0x00112233, 0xf3f2f1f0, 0xf7f6f5f4, 0xfbfaf9f8, 0xfffefdfc };
+            size_t n = 128 * 1024*1024 / sizeof(magma::block);
+            auto message = std::make_unique<magma::block[]>(n);
+            std::mt19937 eng;
+            eng.seed(15);
+            for (size_t i = 0; i < n; ++i)
+            {
+                message[i].uint[0] = eng();
+                message[i].uint[1] = eng();
+            }
 
-    //magma_gpu m2(keys);
-    //bench(m2, n, message);
+            std::cout << "CPU" << std::endl;
+            magma m1(keys);
+            bench(m1, n, message);
 
-    //encrypt_file(m, "test.txt","encrypted.txt",500);
-    //decrypt_file(m, "encrypted.txt", "decrypted.txt",500);
+            std::cout << "GPU" << std::endl;
+            magma_gpu m2(keys);
+            bench(m2, n, message);
+            return 0;
+        }
+
 
     argparse::ArgumentParser program("magma", "1.0.0");
     program.add_argument("-e", "--encrypt")
@@ -47,7 +52,7 @@ int main(int argc, char* argv[])
         .default_value(false)
         .implicit_value(true);
     program.add_argument("-b", "--bench")
-        .help("bench")
+        .help("testing program. test gpu and cpu 128mb data. for using use only this argument")
         .default_value(false)
         .implicit_value(true);
     program.add_argument("-r", "--random")
@@ -125,16 +130,12 @@ int main(int argc, char* argv[])
             exit(EXIT_FAILURE);
         }
         std::cout << "encrypt";
-        if (program["--bench"] == true)
-            std::cout << " with bench";
         std::cout << " from " << program.get<std::string>("input file") << " to " << program.get<std::string>("output file") << std::endl;
         magma m(keys);
         encrypt_file(m, program.get<std::string>("input file").c_str(), program.get<std::string>("output file").c_str(), 500);
     }
     if (program["--decrypt"] == true) {
         std::cout << "decrypt";
-        if (program["--bench"] == true)
-            std::cout << " with bench";
         std::cout << " from " << program.get<std::string>("input file") << " to " << program.get<std::string>("output file") << std::endl;
         magma m(keys);
         decrypt_file(m, program.get<std::string>("input file").c_str(), program.get<std::string>("output file").c_str(), 500);
@@ -227,6 +228,6 @@ void bench(const magma& m, size_t n, const std::unique_ptr<magma::block[]>& mess
     }
 
     auto time = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-    std::cout << "Works :)" << std::endl;
+    std::cout << "works :)" << std::endl;
     std::cout << std::dec << time << "ms" << std::endl;
 }
