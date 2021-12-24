@@ -71,6 +71,58 @@ __global__ void encrypt_kernel(magma::block* data, size_t n, magma_keys k) {
 	}
 };
 
+__global__ void decrypt_kernel(magma::block* data, size_t n, magma_keys k) {
+	auto tid = threadIdx.x + blockIdx.x * blockDim.x;
+	auto tcnt = blockDim.x * gridDim.x;
+
+	__shared__ unsigned int swap_table[4][256];
+	__shared__ magma_keys keys;
+
+	if (threadIdx.x == 0) {
+		keys = k;
+
+		for (int i = 0; i < 4; ++i) {
+			for (int j = 0; j < 256; ++j)
+				swap_table[i][j] = _swap_table[i][j];
+		}
+	}
+
+	__syncthreads();
+
+	for (int k = tid; k < n; k += tcnt)
+	{
+		/*if (threadIdx.x == 0 && blockIdx.x == 0)
+			printf("%llu", data[k].ull);*/
+		auto src = data[k];
+		for (int i = 0; i < 31; ++i)
+		{
+			int key_index = 0;
+			if (i <= 7)
+				key_index = i;
+			else
+				key_index = (31 - i) % 8;
+			auto tmp = src.uint[1];
+			src.uint[1] += keys.keys[key_index];
+			for (int j = 4; j < 8; ++j)
+			{
+				src.c[j] = swap_table[j - 4][src.c[j]];
+			}
+			src.uint[1] = (src.uint[1] << 11) | (src.uint[1] >> 21);
+			src.uint[1] = src.uint[1] ^ src.uint[0];
+			src.uint[0] = tmp;
+		}
+		auto tmp = src.uint[1];
+		src.uint[1] += keys.keys[0];
+		for (size_t j = 4; j < 8; ++j)
+		{
+			src.c[j] = swap_table[j - 4][src.c[j]];
+		}
+		src.uint[1] = (src.uint[1] << 11) | (src.uint[1] >> 21);
+		src.uint[0] = src.uint[1] ^ src.uint[0];
+		src.uint[1] = tmp;
+	}
+};
+
 
 static inline cudaError_t x_check(cudaError_t result, const char* file = "", int line = 0) {
 	if (result != cudaSuccess)
@@ -91,6 +143,19 @@ void magma_gpu::encrypt(block* buf, size_t size) const
 	magma_keys k;
 	std::copy_n(this->keys, 8, k.keys);
 	encrypt_kernel <<<64, 128 >>> (data, size, k); //Instead of <<<10, 1024>> here must be something like <<<this->thread_blocks, this->block.size>>>
+	check(cudaDeviceSynchronize());
+	check(cudaMemcpy(buf, data, size * sizeof(block), cudaMemcpyDeviceToHost));
+	check(cudaFree(data));
+}
+
+void magma_gpu::decrypt(block* buf, size_t size) const
+{
+	block* data;
+	check(cudaMalloc(&data, size * sizeof(block)));
+	check(cudaMemcpy(data, buf, size * sizeof(block), cudaMemcpyHostToDevice));
+	magma_keys k;
+	std::copy_n(this->keys, 8, k.keys);
+	decrypt_kernel << <64, 128 >> > (data, size, k); //Instead of <<<10, 1024>> here must be something like <<<this->thread_blocks, this->block.size>>>
 	check(cudaDeviceSynchronize());
 	check(cudaMemcpy(buf, data, size * sizeof(block), cudaMemcpyDeviceToHost));
 	check(cudaFree(data));

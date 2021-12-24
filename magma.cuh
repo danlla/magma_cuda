@@ -20,5 +20,5 @@ protected:
 public:
 	magma(const std::array<unsigned int, 8>& key);
 	virtual void encrypt(block* buf, size_t n) const;
-	void decrypt(block* buf, size_t n) const;
+	virtual void decrypt(block* buf, size_t n) const;
 };
