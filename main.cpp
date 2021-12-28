@@ -51,14 +51,16 @@ int main(int argc, char* argv[])
         .help("decrypt data")
         .default_value(false)
         .implicit_value(true);
+    program.add_argument("-s", "--size")
+        .help("buf size for read and write from/to file, this param msust be the same for encrypt and decrypt")
+        .scan<'i', int>()
+        .default_value<int>(4000);
     program.add_argument("-b", "--bench")
         .help("testing program. test gpu and cpu 128mb data. for using use only this argument")
         .default_value(false)
         .implicit_value(true);
     program.add_argument("-r", "--random")
         .help("file for saving random key");
-   /* program.add_argument("-p", "--password")
-        .help("password key");*/
     program.add_argument("-k", "--key")
         .help("for encrypt read a key from file\n\t\tfor decrypt read a key from file");
     program.add_argument("input file")
@@ -132,13 +134,13 @@ int main(int argc, char* argv[])
         std::cout << "encrypt";
         std::cout << " from " << program.get<std::string>("input file") << " to " << program.get<std::string>("output file") << std::endl;
         magma m(keys);
-        encrypt_file(m, program.get<std::string>("input file").c_str(), program.get<std::string>("output file").c_str(), 500);
+        encrypt_file(m, program.get<std::string>("input file").c_str(), program.get<std::string>("output file").c_str(), program.get<int>("--size")/sizeof(magma::block));
     }
     if (program["--decrypt"] == true) {
         std::cout << "decrypt";
         std::cout << " from " << program.get<std::string>("input file") << " to " << program.get<std::string>("output file") << std::endl;
         magma m(keys);
-        decrypt_file(m, program.get<std::string>("input file").c_str(), program.get<std::string>("output file").c_str(), 500);
+        decrypt_file(m, program.get<std::string>("input file").c_str(), program.get<std::string>("output file").c_str(), program.get<int>("--size") / sizeof(magma::block));
     }
 
 }
