@@ -3,8 +3,6 @@
 
 class magma_gpu :public magma
 {
-//private:
-    //friend __global__ void encrypt_kernel(block*, size_t, magma_gpu);
 public:
     void encrypt(block* buf, size_t n) const override;
     void decrypt(block* buf, size_t n) const override;

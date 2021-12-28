@@ -120,6 +120,7 @@ __global__ void decrypt_kernel(magma::block* data, size_t n, magma_keys k) {
 		src.uint[1] = (src.uint[1] << 11) | (src.uint[1] >> 21);
 		src.uint[0] = src.uint[1] ^ src.uint[0];
 		src.uint[1] = tmp;
+		data[k] = src;
 	}
 };
 
