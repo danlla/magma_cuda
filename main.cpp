@@ -133,13 +133,13 @@ int main(int argc, char* argv[])
         }
         std::cout << "encrypt";
         std::cout << " from " << program.get<std::string>("input file") << " to " << program.get<std::string>("output file") << std::endl;
-        magma m(keys);
+        magma_gpu m(keys);
         encrypt_file(m, program.get<std::string>("input file").c_str(), program.get<std::string>("output file").c_str(), program.get<int>("--size")/sizeof(magma::block));
     }
     if (program["--decrypt"] == true) {
         std::cout << "decrypt";
         std::cout << " from " << program.get<std::string>("input file") << " to " << program.get<std::string>("output file") << std::endl;
-        magma m(keys);
+        magma_gpu m(keys);
         decrypt_file(m, program.get<std::string>("input file").c_str(), program.get<std::string>("output file").c_str(), program.get<int>("--size") / sizeof(magma::block));
     }
 
