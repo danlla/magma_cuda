@@ -84,15 +84,6 @@ int main(int argc, char* argv[])
         std::cout << "You need choose encrypt or decrypt";
         exit(EXIT_FAILURE);
     }
-    /*if (program.present("-p").has_value())
-    {
-        if (program.present("-r").has_value())
-        {
-            std::cout << "Only password or random";
-            exit(EXIT_FAILURE);
-        }
-        std::cout << program.present("-p").value() << std::endl;
-    }*/
     else if (program.present("-r").has_value())
     {
         if (program["--decrypt"] == true)
@@ -107,7 +98,7 @@ int main(int argc, char* argv[])
             keys[i] = engine();
         std::ofstream ofile(program.present("-r").value(), std::ios::binary);
         ofile.setf(std::ios_base::hex);
-        ofile.write((char*)keys.data(), 64);
+        ofile.write((char*)keys.data(), 32);
     }
     else
     {
@@ -122,7 +113,7 @@ int main(int argc, char* argv[])
             std::cout << "empty key file";
             exit(EXIT_FAILURE);
         }
-        ifile.read((char*)keys.data(),64);
+        ifile.read((char*)keys.data(),32);
     }
 
     if (program["--encrypt"] == true) {
@@ -209,7 +200,7 @@ void decrypt_file(const magma& m, const char* input_file, const char* output_fil
     delete[] buf;
 }
 
-/*one task - one function*/
+
 void bench(const magma& m, size_t n, const std::unique_ptr<magma::block[]>& message) {
     auto tmp = std::make_unique<magma::block[]>(n);
     std::copy_n(message.get(), n, tmp.get());
@@ -219,7 +210,7 @@ void bench(const magma& m, size_t n, const std::unique_ptr<magma::block[]>& mess
     m.decrypt(message.get(), n);
 
 
-#pragma omp parallel for //faster compare
+#pragma omp parallel for
     for (int64_t i = 0; i < n; ++i)
     {
         if (message[i].ull != tmp[i].ull)

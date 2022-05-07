@@ -3,14 +3,6 @@
 #include <stdio.h>
 
 
-
-/*
- * this is a quite common thing in CUDA
- * __CUDA_ARCH__ is defined when compiling the device code and undefined when compiling the host code
- * this allows to create 2 different variables (or even functions and classes) with the same name
- * one for device and one for host
- * */
-
 constexpr unsigned char swap_table[4][256] =
 {
 	{24, 30, 18, 21, 22, 25, 17, 28, 31, 20, 27, 16, 29, 26, 19, 23, 120, 126, 114, 117, 118, 121, 113, 124, 127, 116, 123, 112, 125, 122, 115, 119, 232, 238, 226, 229, 230, 233, 225, 236, 239, 228, 235, 224, 237, 234, 227, 231, 216, 222, 210, 213, 214, 217, 209, 220, 223, 212, 219, 208, 221, 218, 211, 215, 8, 14, 2, 5, 6, 9, 1, 12, 15, 4, 11, 0, 13, 10, 3, 7, 88, 94, 82, 85, 86, 89, 81, 92, 95, 84, 91, 80, 93, 90, 83, 87, 136, 142, 130, 133, 134, 137, 129, 140, 143, 132, 139, 128, 141, 138, 131, 135, 56, 62, 50, 53, 54, 57, 49, 60, 63, 52, 59, 48, 61, 58, 51, 55, 72, 78, 66, 69, 70, 73, 65, 76, 79, 68, 75, 64, 77, 74, 67, 71, 248, 254, 242, 245, 246, 249, 241, 252, 255, 244, 251, 240, 253, 250, 243, 247, 168, 174, 162, 165, 166, 169, 161, 172, 175, 164, 171, 160, 173, 170, 163, 167, 104, 110, 98, 101, 102, 105, 97, 108, 111, 100, 107, 96, 109, 106, 99, 103, 152, 158, 146, 149, 150, 153, 145, 156, 159, 148, 155, 144, 157, 154, 147, 151, 200, 206, 194, 197, 198, 201, 193, 204, 207, 196, 203, 192, 205, 202, 195, 199, 184, 190, 178, 181, 182, 185, 177, 188, 191, 180, 187, 176, 189, 186, 179, 183, 40, 46, 34, 37, 38, 41, 33, 44, 47, 36, 43, 32, 45, 42, 35, 39},
@@ -21,8 +13,6 @@ constexpr unsigned char swap_table[4][256] =
 
 void magma::encrypt_block(block& src2) const
 {
-	/*if (threadIdx.x == 0 && blockIdx.x == 0)
-		printf("%llu", src.ull);*/
 	auto src = src2;
 	for (size_t i = 0; i < 31; ++i)
 	{
@@ -86,7 +76,7 @@ void magma::decrypt_block(block& src) const
 
 magma::magma(const std::array<unsigned int, 8>& key)
 {
-	for (size_t i = 0; i < 8; ++i) // std::copy
+	for (size_t i = 0; i < 8; ++i)
 	{
 		keys[i] = key[i];
 	}

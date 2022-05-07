@@ -15,7 +15,7 @@ public:
 
 protected:
 	unsigned int keys[8];
-	__host__ void encrypt_block(block& src) const; //had to rename it  - otherwise the device linker failed
+	__host__ void encrypt_block(block& src) const;
 	__host__ void decrypt_block(block& src) const;
 public:
 	magma(const std::array<unsigned int, 8>& key);
