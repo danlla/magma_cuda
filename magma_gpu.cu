@@ -4,6 +4,13 @@
 #include <stdexcept>
 #include <string>
 #include <iostream>
+#include <device_launch_parameters.h>
+#include <device_functions.h>
+
+#pragma once
+#ifdef __INTELLISENSE__
+void __syncthreads();
+#endif
 
 struct magma_keys {
 	unsigned int keys[8];
@@ -18,7 +25,7 @@ const __device__ unsigned char _swap_table[4][256] =
 {108, 100, 102, 98, 106, 101, 107, 105, 110, 104, 109, 103, 96, 99, 111, 97, 140, 132, 134, 130, 138, 133, 139, 137, 142, 136, 141, 135, 128, 131, 143, 129, 44, 36, 38, 34, 42, 37, 43, 41, 46, 40, 45, 39, 32, 35, 47, 33, 60, 52, 54, 50, 58, 53, 59, 57, 62, 56, 61, 55, 48, 51, 63, 49, 156, 148, 150, 146, 154, 149, 155, 153, 158, 152, 157, 151, 144, 147, 159, 145, 172, 164, 166, 162, 170, 165, 171, 169, 174, 168, 173, 167, 160, 163, 175, 161, 92, 84, 86, 82, 90, 85, 91, 89, 94, 88, 93, 87, 80, 83, 95, 81, 204, 196, 198, 194, 202, 197, 203, 201, 206, 200, 205, 199, 192, 195, 207, 193, 28, 20, 22, 18, 26, 21, 27, 25, 30, 24, 29, 23, 16, 19, 31, 17, 236, 228, 230, 226, 234, 229, 235, 233, 238, 232, 237, 231, 224, 227, 239, 225, 76, 68, 70, 66, 74, 69, 75, 73, 78, 72, 77, 71, 64, 67, 79, 65, 124, 116, 118, 114, 122, 117, 123, 121, 126, 120, 125, 119, 112, 115, 127, 113, 188, 180, 182, 178, 186, 181, 187, 185, 190, 184, 189, 183, 176, 179, 191, 177, 220, 212, 214, 210, 218, 213, 219, 217, 222, 216, 221, 215, 208, 211, 223, 209, 12, 4, 6, 2, 10, 5, 11, 9, 14, 8, 13, 7, 0, 3, 15, 1, 252, 244, 246, 242, 250, 245, 251, 249, 254, 248, 253, 247, 240, 243, 255, 241},
 };
 
-__global__ void encrypt_kernel(magma::block* data, size_t n, magma_keys k) {
+__global__ void encrypt_kernel(magma::block* data, size_t n, magma_keys ks) {
 	auto tid = threadIdx.x + blockIdx.x * blockDim.x;
 	auto tcnt = blockDim.x * gridDim.x;
 
@@ -26,7 +33,7 @@ __global__ void encrypt_kernel(magma::block* data, size_t n, magma_keys k) {
 	__shared__ magma_keys keys;
 
 	if (threadIdx.x == 0) {
-		keys = k;
+		keys = ks;
 
 		for (int i = 0; i < 4; ++i) {
 			for (int j = 0; j < 256; ++j)
@@ -38,8 +45,6 @@ __global__ void encrypt_kernel(magma::block* data, size_t n, magma_keys k) {
 
 	for (int k = tid; k < n; k += tcnt)
 	{
-		/*if (threadIdx.x == 0 && blockIdx.x == 0)
-			printf("%llu", data[k].ull);*/
 		auto src = data[k];
 		for (int i = 0; i < 31; ++i)
 		{
@@ -91,8 +96,6 @@ __global__ void decrypt_kernel(magma::block* data, size_t n, magma_keys k) {
 
 	for (int k = tid; k < n; k += tcnt)
 	{
-		/*if (threadIdx.x == 0 && blockIdx.x == 0)
-			printf("%llu", data[k].ull);*/
 		auto src = data[k];
 		for (int i = 0; i < 31; ++i)
 		{
@@ -140,9 +143,9 @@ void magma_gpu::encrypt(block* buf, size_t size) const
 {
 	block* data;
 	check(cudaMalloc(&data, size * sizeof(block)));
-	check(cudaMemcpy(data, buf, size * sizeof(block), cudaMemcpyHostToDevice));
 	magma_keys k;
 	std::copy_n(this->keys, 8, k.keys);
+	check(cudaMemcpy(data, buf, size * sizeof(block), cudaMemcpyHostToDevice));
 	encrypt_kernel <<<64, 128 >>> (data, size, k); //Instead of <<<10, 1024>> here must be something like <<<this->thread_blocks, this->block.size>>>
 	check(cudaDeviceSynchronize());
 	check(cudaMemcpy(buf, data, size * sizeof(block), cudaMemcpyDeviceToHost));
@@ -156,7 +159,7 @@ void magma_gpu::decrypt(block* buf, size_t size) const
 	check(cudaMemcpy(data, buf, size * sizeof(block), cudaMemcpyHostToDevice));
 	magma_keys k;
 	std::copy_n(this->keys, 8, k.keys);
-	decrypt_kernel << <64, 128 >> > (data, size, k); //Instead of <<<10, 1024>> here must be something like <<<this->thread_blocks, this->block.size>>>
+	decrypt_kernel << <64, 128 >> > (data, size, k);
 	check(cudaDeviceSynchronize());
 	check(cudaMemcpy(buf, data, size * sizeof(block), cudaMemcpyDeviceToHost));
 	check(cudaFree(data));
