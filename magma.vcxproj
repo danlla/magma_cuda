@@ -57,7 +57,7 @@
     </Link>
     <CudaCompile>
       <TargetMachinePlatform>64</TargetMachinePlatform>
-      <CodeGeneration>compute_30,sm_30</CodeGeneration>
+      <CodeGeneration>compute_35,sm_35</CodeGeneration>
       <AdditionalOptions>-Xcompiler "/openmp" %(AdditionalOptions)</AdditionalOptions>
     </CudaCompile>
   </ItemDefinitionGroup>
@@ -85,11 +85,13 @@
     </CudaCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <CudaCompile Include="kuznechik.cu" />
     <CudaCompile Include="magma.cu" />
     <CudaCompile Include="magma_gpu.cu" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="argparse.hpp" />
+    <ClInclude Include="kuznechik.cuh" />
     <ClInclude Include="magma.cuh" />
     <ClInclude Include="magma_gpu.cuh" />
   </ItemGroup>
